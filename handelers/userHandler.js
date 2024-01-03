@@ -1,31 +1,34 @@
-import { users } from "./userModel.js";
+import User from '../models/userModel.js';
 import bcrypt from 'bcrypt'
+import {createHash} from "crypto";
 
-function _excludeProperties(obj, excludedProps) {
-    const { [excludedProps]: _, ...result } = obj;
-    return result;
-  }
+
+function generateHash(string) {
+    return bcrypt.hashSync(string, bcrypt.genSaltSync(10));
+}
+
+function _excludeProperties() {
+    return true;
+}
 
 async function _comparePasswords(password, hashPassword) {
-    return bcrypt.compareSync(password, hashPassword); 
+    return bcrypt.compareSync(password, hashPassword);
 }
 
-async function generateHash() {
-    const randomData = crypto.randomBytes(32);
-    const hash = crypto.createHash('sha256');
-    hash.update(randomData);
-    return hash.digest('hex');
-}
-
-async function checkCredentials(email, password) {
-    const user = users.find(user => user.email === email);
-    if(!user) {
+async function checkCredentials(username, password) {
+    const user = await User.findOne({username: username})
+    if (!user) {
         return null;
     }
-    return _comparePasswords(password, user.password) ? _excludeProperties(user, 'password') : null; 
+    return await _comparePasswords(password, user.password) ? _excludeProperties() : false;
 }
 
-export const methods = {
+async function fetchData(username) {
+    return User.findOne({username: username});
+}
+
+export const userMethods = {
     checkCredentials,
-    generateHash
+    generateHash,
+    fetchData
 }
