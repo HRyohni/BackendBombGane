@@ -20,7 +20,6 @@ async function _fetchGameModeSettings(name) {
 
 async function StartGame(GameName) {
     const GameSettings = await _fetchGameModeSettings(GameName);
-    console.log(GameSettings.words);
     return _getTwoLettersFromWord(_getRandomWordFromArray(GameSettings.words))
 }
 
