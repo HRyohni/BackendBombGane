@@ -41,20 +41,23 @@ const io = new Server(server, {
 
 
 // Array to store users
-const users = {};
+const players = [];
 
 
 io.on('connection', (socket) => {
 
     // Handle new user and add to users object
     socket.on('new user', ({username, room}) => {
+
+        userMethods.addUserToRoom(room, username);
+        console.log(userMethods.getRoomData(room));
         console.log(username, "joined room ", room)
         socket.join(room); // Join the specified room
         socket.to(room).emit('user joined', username); // Emit to users in the room
     });
 
-    // Handle chat messages
     socket.on('chat message', ({message, username, room}) => {
+        console.log(players);
         io.to(room).emit('chat message', {message, username}); // Emit message with username
     });
 
@@ -64,6 +67,18 @@ io.on('connection', (socket) => {
         rooms.forEach((room) => {
             io.to(room).emit('user left', socket.id);
         });
+    });
+
+    socket.on('fetchUsers', (room) => {
+        io.to(room).emit('getRoomData', userMethods.getRoomData(room)); // Emit message with username
+    });
+
+    socket.on('nextPlayer', (room, currentMainPlayer) => {
+        io.to(room).emit('getNextPlayer', userMethods.nextPlayerTurn(room, currentMainPlayer)); // Emit message with username
+    });
+
+    socket.on('randomFirstPlayer', (room) => {
+        io.to(room).emit('getRoomData', userMethods.fetchFirstPlayer(room)); // Emit message with username
     });
 
     socket.on('disconnectFromAllRooms', () => {
@@ -80,105 +95,108 @@ io.on('connection', (socket) => {
         });
     });
 
-        socket.on('joinRoom', (room) => {
-            socket.join(room);
-            socket.emit("broadcast", "omg you have new user");
-            socket.to("room1").emit("some event");
-            console.log(socket.rooms);
-            console.log(`User joined room: ${room}`);
-        });
-
-
-        socket.on('startGame', async (GameName, room) => {
-            try {
-                const lettersData = await gameModeMethods.StartGame(GameName);
-                console.log(lettersData);
-                io.to(room).emit("letters", lettersData);
-
-            } catch (error) {
-
-                console.error("Error starting the game:", error);
-            }
-        });
-        socket.on('checkWord', async (GameName, word) => {
-            socket.to("some room").emit("room1");
-            try {
-                const lettersData = await gameModeMethods.doesWordExist("colors", word);
-                socket.emit("result", lettersData);
-            } catch (error) {
-                console.error("Error starting the game:", error);
-            }
-        });
-
-        socket.on('disconnect', () => {
-            console.log('A user disconnected');
-        });
+    socket.on('joinRoom', (room) => {
+        socket.join(room);
+        socket.emit("broadcast", "omg you have new user");
+        socket.to("room1").emit("some event");
     });
 
 
-    app.post('/api/register', async (req, res) => {
+    socket.on('startGame', async (GameName, room) => {
         try {
-            const {username, mail, password} = req.body;
-            if (!mail) {
-                return res.status(400).json({error: 'Email is required'});
-            }
-            const user = new User({username: username, mail: mail, password: userMethods.generateHash(password)});
-            await user.save();
-            console.log('New user added!');
-            return res.status(200).json({result: true});
+            const lettersData = await gameModeMethods.StartGame(GameName);
+
+            console.log(lettersData);
+            io.to(room).emit("letters", lettersData);
+
         } catch (error) {
-            console.log(error);
-            return res.status(500).json({result: false, error: 'Internal server error'});
+
+            console.error("Error starting the game:", error);
+        }
+    });
+    socket.on('checkWord', async (GameName, word) => {
+        socket.to("some room").emit("room1");
+        try {
+            const lettersData = await gameModeMethods.doesWordExist("colors", word);
+            socket.emit("result", lettersData);
+        } catch (error) {
+            console.error("Error starting the game:", error);
         }
     });
 
-    app.post('/api/login', async (req, res) => {
-        try {
-            const {username, password} = req.body;
-            if (await userMethods.checkCredentials(username, password)) {
-                console.log(await userMethods.fetchData(username));
-                res.status(200).json({result: await userMethods.fetchData(username)});
-            }
-            res.status(200);
-        } catch (error) {
-            console.log(error);
-            return res.status(500).json({result: false, error: 'Internal server error'});
-        }
+    socket.on('disconnect', () => {
+        console.log('A user disconnected');
     });
+});
 
-    app.post('/api/fetchUser', async (req, res) => {
-        try {
-            const {username, password} = req.body;
-            if (await userMethods.checkCredentials(username, password)) {
-                res.status(200).json({result: await userMethods.fetchData(username)});
-            }
-            res.status(200);
-        } catch (error) {
-            console.log(error);
-            return res.status(500).json({result: false, error: 'Internal server error'});
+
+app.post('/api/register', async (req, res) => {
+    try {
+        const {username, mail, password} = req.body;
+        if (!mail) {
+            return res.status(400).json({error: 'Email is required'});
         }
-    });
+        const user = new User({username: username, mail: mail, password: userMethods.generateHash(password)});
+        await user.save();
+        console.log('New user added!');
+        return res.status(200).json({result: true});
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({result: false, error: 'Internal server error'});
+    }
+});
+
+app.post('/api/login', async (req, res) => {
+    try {
+        const {username, password} = req.body;
+        console.log(await userMethods.checkCredentials(username, password));
+        if (await userMethods.checkCredentials(username, password)) {
+            console.log(await userMethods.fetchData(username));
+            res.status(200).json({result: await userMethods.fetchData(username)});
+        }
+        res.status(200);
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({result: false, error: 'Internal server error'});
+    }
+});
+
+app.post('/api/fetchUser', async (req, res) => {
+    try {
+        const {username, password} = req.body;
+        if (await userMethods.checkCredentials(username, password)) {
+            res.status(200).json({result: await userMethods.fetchData(username)});
+        }
+        res.status(200);
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({result: false, error: 'Internal server error'});
+    }
+});
 
 // # Gamemodes
 
 // adding new gamemodes for later
-    app.post('/api/add-gamemode', async (req, res) => {
-        const gameMode = new GameMode({name: "colors", words: ["red", "yellow", "green", "black", "white", "orange"]});
-        await gameMode.save();
-        res.send('new Gamemode Saved')
-    })
+app.post('/api/add-gamemode', async (req, res) => {
+    const gameMode = new GameMode({name: "colors", words: ["red", "yellow", "green", "black", "white", "orange"]});
+    await gameMode.save();
+    res.send('new Gamemode Saved')
+})
 
-    app.get('/api/gameMode/:gameModeId', async (req, res) => {
-        try {
-            const name = req.params;
-            const gameMode = await GameMode.findOne({name: "colors"});
-            res.status(200).send(gameMode);
-        } catch (error) {
-            console.log(error);
-            return res.status(500).json({result: false, error: 'Internal server error'});
-        }
-    });
+app.get('/api/gameMode/:gameModeId', async (req, res) => {
+    try {
+        const name = req.params;
+        const gameMode = await GameMode.findOne({name: "colors"});
+        res.status(200).send(gameMode);
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({result: false, error: 'Internal server error'});
+    }
+});
 
-    server.listen(port, () => {
-        console.log(`Service running on port ${port}`);
-    });
+server.listen(port, () => {
+    console.log(`Service running on port ${port}`);
+});
+
+
+
