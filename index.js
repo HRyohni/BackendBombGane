@@ -48,7 +48,7 @@ io.on('connection', (socket) => {
 
     // Handle new user and add to users object
     socket.on('new user', ({username, room}) => {
-
+        console.log("test")
         userMethods.addUserToRoom(room, username);
         console.log(userMethods.getRoomData(room));
         console.log(username, "joined room ", room)

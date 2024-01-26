@@ -15,5 +15,7 @@ const userSchema = new mongoose.Schema({
     },
 });
 
-const gameModes = mongoose.model("gamemodes", userSchema);
-export default gameModes;
+
+const User = mongoose.model("user", userSchema);
+export default User;
+

@@ -13,18 +13,30 @@ function _excludeProperties() {
 }
 
 async function _comparePasswords(password, hashPassword) {
-    return bcrypt.compareSync(password, hashPassword);
+    console.log("Input Password:", password);
+    console.log("Stored Hashed Password:", hashPassword);
+
+    const result = await bcrypt.compare(password, hashPassword);
+    console.log("Password Comparison Result:", result);
+
+    return result;
 }
 
 async function checkCredentials(username, password) {
-    const user = await User.findOne({username: username})
-    console.log(username, "  ", password);
-    console.log(await User.findOne({username: username}));
+    const user = await User.findOne({"username": username});
+    console.log(username);
+    console.log(user);
+
     if (!user) {
+        console.log("can't find user!");
         return false;
     }
+
+    console.log("Stored Hashed Password:", user.password);
+
     return await _comparePasswords(password, user.password) ? _excludeProperties() : false;
 }
+
 
 async function fetchData(username) {
     return User.findOne({username: username});
@@ -56,7 +68,6 @@ function fetchFirstPlayer(roomName) {
 }
 
 function nextPlayerTurn(roomName, currentMainPlayer) {
-    if ()
     return roomData[roomName][roomData[roomName].findIndex(x => x === currentMainPlayer)+1]; //ToDo: fix overfill with arrey
 }
 
