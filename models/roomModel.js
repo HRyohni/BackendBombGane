@@ -1,22 +1,15 @@
 import mongoose from "mongoose";
 const roomSchema = new mongoose.Schema({
-    username: {
-        type: String,
+    Room:{
+        type: Object,
         required: true,
     },
-    mail: {
-        type: String,
-        required: true,
-        unique: true,
-    },
-    password: {
-        type: String,
-        required: true,
-    },
+
+
 });
 
-const User = mongoose.model("user", userSchema);
-export default User;
+const roomDB = mongoose.model("roomDB", roomSchema);
+export default roomDB;
 
 
 // const gameModes = mongoose.model("gamemodes", userSchema);

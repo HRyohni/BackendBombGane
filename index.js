@@ -1,14 +1,23 @@
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import express from 'express';
+
+import roomDB from "./models/roomModel.js";
 import User from './models/userModel.js';
 import GameMode from './models/gameSettingsModel.js';
+
+
 import {userMethods} from './handelers/userHandler.js';
 import {gameModeMethods} from './handelers/GameModeHandler.js';
+import {roomMethods} from './handelers/RoomHandeler.js';
+import {socketMethods} from './handelers/socketHandlers.js';
+
+
 import http from 'http';
 import {Server} from 'socket.io';
 
 import cors from "cors";
+
 
 const app = express();
 const router = express.Router();
@@ -26,107 +35,34 @@ mongoose
 
 app.use(express.json());
 app.use('/api', router);
-app.use(cors());
+app.use(cors({
+    origin: 'http://127.0.0.1:3000', // Replace with the appropriate origin
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+}));
 
 const server = http.createServer(app);
-// Pass the server instance to Socket.IO
 const io = new Server(server, {
     cors: {
-        origin: 'http://localhost:5173', // Specify the allowed origin for WebSocket requests
-        methods: ['GET', 'POST'], // Adjust with necessary methods
-        allowedHeaders: ['Authorization'], // Adjust with necessary headers
-        credentials: true, // Enable credentials if required (e.g., for sending cookies)
+        origin: 'http://127.0.0.1:5173', // Specify the allowed origin for WebSocket requests
+        methods: ['GET', 'POST'],
+        allowedHeaders: ['Authorization'],
+        credentials: true,
     },
 });
 
 
-// Array to store users
-const players = [];
-
-
 io.on('connection', (socket) => {
-
-    // Handle new user and add to users object
-    socket.on('new user', ({username, room}) => {
-        console.log("test")
-        userMethods.addUserToRoom(room, username);
-        console.log(userMethods.getRoomData(room));
-        console.log(username, "joined room ", room)
-        socket.join(room); // Join the specified room
-        socket.to(room).emit('user joined', username); // Emit to users in the room
-    });
-
-    socket.on('chat message', ({message, username, room}) => {
-        console.log(players);
-        io.to(room).emit('chat message', {message, username}); // Emit message with username
-    });
-
-    socket.on('disconnect', () => {
-        // Fetch rooms for the disconnected socket
-        const rooms = Object.keys(socket.rooms);
-        rooms.forEach((room) => {
-            io.to(room).emit('user left', socket.id);
-        });
-    });
-
-    socket.on('fetchUsers', (room) => {
-        io.to(room).emit('getRoomData', userMethods.getRoomData(room)); // Emit message with username
-    });
-
-    socket.on('nextPlayer', (room, currentMainPlayer) => {
-        io.to(room).emit('getNextPlayer', userMethods.nextPlayerTurn(room, currentMainPlayer)); // Emit message with username
-    });
-
-    socket.on('randomFirstPlayer', (room) => {
-        io.to(room).emit('getRoomData', userMethods.fetchFirstPlayer(room)); // Emit message with username
-    });
-
-    socket.on('disconnectFromAllRooms', () => {
-        // Get all rooms user has joined
-        const rooms = socket.rooms;
-        console.log(socket.rooms);
-
-        // Leave all rooms
-        rooms.forEach((room) => {
-            if (room !== socket.id) { // Don't leave the default room (socket.id)
-                socket.leave(room);
-                console.log("user disconnected from ", room);
-            }
-        });
-    });
-
-    socket.on('joinRoom', (room) => {
-        socket.join(room);
-        socket.emit("broadcast", "omg you have new user");
-        socket.to("room1").emit("some event");
-    });
-
-
-    socket.on('startGame', async (GameName, room) => {
-        try {
-            const lettersData = await gameModeMethods.StartGame(GameName);
-
-            console.log(lettersData);
-            io.to(room).emit("letters", lettersData);
-
-        } catch (error) {
-
-            console.error("Error starting the game:", error);
-        }
-    });
-    socket.on('checkWord', async (GameName, word) => {
-        socket.to("some room").emit("room1");
-        try {
-            const lettersData = await gameModeMethods.doesWordExist("colors", word);
-            socket.emit("result", lettersData);
-        } catch (error) {
-            console.error("Error starting the game:", error);
-        }
-    });
-
-    socket.on('disconnect', () => {
-        console.log('A user disconnected');
-    });
+    socketMethods.onNewUserConnected(socket)
+    socketMethods.onJoinRoom(socket);
+    socketMethods.onChatMessage(socket);
+    socketMethods.onFetchAllUsers(socket);
+    socketMethods.onStartGame(socket);
+    socketMethods.onNextPlayerTurn(socket);
+    socketMethods.onPickRandomPlayer(socket);
+    socketMethods.onCheckWord(socket);
+    socketMethods.onDisconnectFromAllRooms(socket);
+    socketMethods.onSocketDisconnect(socket)
 });
 
 
@@ -174,8 +110,8 @@ app.post('/api/fetchUser', async (req, res) => {
     }
 });
 
-// # Gamemodes
 
+// # Gamemodes
 // adding new gamemodes for later
 app.post('/api/add-gamemode', async (req, res) => {
     const gameMode = new GameMode({name: "colors", words: ["red", "yellow", "green", "black", "white", "orange"]});
@@ -193,6 +129,21 @@ app.get('/api/gameMode/:gameModeId', async (req, res) => {
         return res.status(500).json({result: false, error: 'Internal server error'});
     }
 });
+
+// # Rooms
+app.post('/api/room/create-room', async (req, res) => {
+    res.status(200).send(roomMethods.createRoom(req.body))
+})
+
+app.get('/api/room/fetch-rooms', async (req, res) => {
+    try {
+        console.log(roomMethods.fetchRooms());
+        res.status(200).json(await roomMethods.fetchRooms())
+    } catch (error) {
+        res.status(500);
+    }
+});
+
 
 server.listen(port, () => {
     console.log(`Service running on port ${port}`);
