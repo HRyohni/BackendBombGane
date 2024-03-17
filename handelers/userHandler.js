@@ -24,15 +24,11 @@ async function _comparePasswords(password, hashPassword) {
 
 async function checkCredentials(username, password) {
     const user = await User.findOne({"username": username});
-    console.log(username);
-    console.log(user);
 
     if (!user) {
         console.log("can't find user!");
         return false;
     }
-
-    console.log("Stored Hashed Password:", user.password);
 
     return await _comparePasswords(password, user.password) ? _excludeProperties() : false;
 }

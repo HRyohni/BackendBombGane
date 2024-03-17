@@ -53,16 +53,10 @@ const io = new Server(server, {
 
 
 io.on('connection', (socket) => {
-    socketMethods.onNewUserConnected(socket)
     socketMethods.onJoinRoom(socket);
-    socketMethods.onChatMessage(socket);
-    socketMethods.onFetchAllUsers(socket);
-    socketMethods.onStartGame(socket);
-    socketMethods.onNextPlayerTurn(socket);
-    socketMethods.onPickRandomPlayer(socket);
-    socketMethods.onCheckWord(socket);
-    socketMethods.onDisconnectFromAllRooms(socket);
-    socketMethods.onSocketDisconnect(socket)
+    socketMethods.onUserDisconnect(socket);
+
+
 });
 
 
@@ -143,6 +137,23 @@ app.get('/api/room/fetch-rooms', async (req, res) => {
         res.status(500);
     }
 });
+
+app.get('/api/room/fetch-room/:roomID', async (req, res) => {
+    try {
+        const roomID = req.params.roomID;
+        console.log(roomID);
+        console.log(await roomMethods.fetchRoomByID(roomID));
+        res.status(200).json(await roomMethods.fetchRoomByID(roomID))
+    } catch (error) {
+        res.status(500);
+    }
+});
+
+ app.post('/api/room/update-room', async (req, res) => {
+    const {roomID , data} = await req.body;
+    res.status(200).send(await roomMethods.updateRoomById(roomID,data));
+})
+
 
 
 server.listen(port, () => {

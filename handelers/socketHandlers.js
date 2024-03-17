@@ -1,6 +1,46 @@
 import {userMethods} from "./userHandler.js";
 import {gameModeMethods} from "./GameModeHandler.js";
 
+const rooms = {};
+export function onJoinRoom(socket){
+    socket.on('joinRoom', (roomName, playerName ) => {
+        // Create room if it doesn't exist
+        if (!rooms[roomName]) {
+            rooms[roomName] = { sockets: new Set(), playersName: [] };
+            console.log("created room")
+        }
+
+        // Add the socket to the room
+        socket.join(roomName);
+        rooms[roomName].sockets.add(socket.id);
+        rooms[roomName].playersName.push(playerName);
+
+        console.log(`Socket ${socket.id} joined room ${roomName} as ${playerName}`);
+        console.log(`Players in room ${roomName}: ${rooms[roomName].playersName}`);
+    });
+}
+
+export function onUserDisconnect(socket) {
+    socket.on('disconnectUserFromRoom', (roomName, userName ) => {
+
+        if (rooms.hasOwnProperty(roomName)) {
+            rooms[roomName].sockets.delete(socket);
+            // You may also want to remove the user's name from the list of players
+            // Assuming 'userName' contains the name of the user you want to remove
+            const index = rooms[roomName].playersName.indexOf(userName);
+            if (index !== -1) {
+                rooms[roomName].playersName.splice(index, 1);
+            }
+            console.log(userName, " user disconnected from " , roomName);
+        }
+
+    });
+}
+
+
+
+
+
 export function onSocketDisconnect(socket){
     socket.on('disconnect', async () => {
         console.log("User disconnected");
@@ -14,10 +54,10 @@ export function onSocketDisconnect(socket){
             await userMethods.removeUserFromRoom(socket.id, room);
 
             // Notify other users in the room about the disconnection
-            io.to(room).emit('user left', socket.id);
+            socket.to(room).emit('user left', socket.id);
 
             // Fetch and emit updated room data to all users in the room
-            io.to(room).emit('getRoomData', userMethods.getRoomData(room));
+            socket.to(room).emit('getRoomData', userMethods.getRoomData(room));
         }
     });
 }
@@ -34,26 +74,26 @@ export function  onNewUserConnected(socket){
 
 export function onChatMessage(socket){
     socket.on('chat message', ({message, username, room}) => {
-        io.to(room).emit('chat message', {message, username}); // Emit message with username
+        socket.to(room).emit('chat message', {message, username}); // Emit message with username
     });
 }
 
 export function onFetchAllUsers(socket){
     socket.on('fetchUsers', (room) => {
-        io.to(room).emit('getRoomData', userMethods.getRoomData(room)); // Emit message with username
+        socket.to(room).emit('getRoomData', userMethods.getRoomData(room)); // Emit message with username
     });
 }
 
 export function onNextPlayerTurn(socket){
     socket.on('nextPlayer', (room, currentMainPlayer) => {
-        io.to(room).emit('getNextPlayer', userMethods.nextPlayerTurn(room, currentMainPlayer)); // Emit message with username
+        socket.to(room).emit('getNextPlayer', userMethods.nextPlayerTurn(room, currentMainPlayer)); // Emit message with username
     });
 
 }
 
 export function onPickRandomPlayer(socket){
     socket.on('randomFirstPlayer', (room) => {
-        io.to(room).emit('fetchFirstPlayer', userMethods.fetchFirstPlayer(room)); // Emit message with username
+        socket.to(room).emit('fetchFirstPlayer', userMethods.fetchFirstPlayer(room)); // Emit message with username
     });
 }
 
@@ -73,13 +113,7 @@ export function onDisconnectFromAllRooms(socket){
     });
 }
 
-export function onJoinRoom(socket){
-    socket.on('joinRoom', (room) => {
-        socket.join(room);
-        socket.emit("broadcast", "omg you have new user");
-        socket.to("room1").emit("some event");
-    });
-}
+
 
 export function onStartGame(socket){
     socket.on('startGame', async (GameName, room) => {
@@ -87,7 +121,7 @@ export function onStartGame(socket){
             const lettersData = await gameModeMethods.StartGame(GameName);
 
             console.log(lettersData);
-            io.to(room).emit("letters", lettersData);
+            socket.to(room).emit("letters", lettersData);
 
         } catch (error) {
 
@@ -110,16 +144,8 @@ export function onCheckWord(socket){
 
 
 export const socketMethods = {
-    onSocketDisconnect,
-    onNewUserConnected,
-    onChatMessage,
-    onFetchAllUsers,
-    onNextPlayerTurn,
-    onPickRandomPlayer,
-    onDisconnectFromAllRooms,
     onJoinRoom,
-    onStartGame,
-    onCheckWord,
+    onUserDisconnect,
 
 
 }
