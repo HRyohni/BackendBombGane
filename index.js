@@ -10,7 +10,7 @@ import GameMode from './models/gameSettingsModel.js';
 import {userMethods} from './handelers/userHandler.js';
 import {gameModeMethods} from './handelers/GameModeHandler.js';
 import {roomMethods} from './handelers/RoomHandeler.js';
-import {socketMethods} from './handelers/socketHandlers.js';
+import {onChatMessage, socketMethods} from './handelers/socketHandlers.js';
 
 
 import http from 'http';
@@ -55,8 +55,7 @@ const io = new Server(server, {
 io.on('connection', (socket) => {
     socketMethods.onJoinRoom(socket);
     socketMethods.onUserDisconnect(socket);
-
-
+    socketMethods.onChatMessage(socket);
 });
 
 
@@ -141,8 +140,6 @@ app.get('/api/room/fetch-rooms', async (req, res) => {
 app.get('/api/room/fetch-room/:roomID', async (req, res) => {
     try {
         const roomID = req.params.roomID;
-        console.log(roomID);
-        console.log(await roomMethods.fetchRoomByID(roomID));
         res.status(200).json(await roomMethods.fetchRoomByID(roomID))
     } catch (error) {
         res.status(500);

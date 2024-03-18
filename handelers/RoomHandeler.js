@@ -61,17 +61,43 @@ async function updateRoomById(roomId, newData) {
     }
 }
 
-async function removePlayerFromRoom(roomID)
-{
-    let room = await fetchRoomByID(roomID)
-    console.log(room);
+async function removePlayerFromRoom(roomID, username) {
+    try {
+        // Fetch the room based on the provided roomID
+        let room = await fetchRoomByID(roomID);
+
+        if (!room) {
+            console.log("Room not found");
+            return null;
+        }
+
+        room.playersName = room.playersName.filter(player => player !== username);
+
+        // Update the room in the database
+        const updatedRoom = await roomDB.findOneAndUpdate(
+            { _id: roomID },
+            { $set: { "Room.playersName": room.playersName } },
+            { new: true }
+        );
+
+        console.log("Player removed from room:", updatedRoom);
+        return updatedRoom;
+    } catch (error) {
+        console.error("Error removing player from room:", error);
+        throw error; // Throw the error for handling upstream
+    }
 }
 
+async function sendMessage(roomID,username)
+{
+    
+}
 
 export const roomMethods = {
     createRoom,
     fetchRooms,
     fetchRoomByID,
-    updateRoomById
+    updateRoomById,
+    removePlayerFromRoom
 
 }
