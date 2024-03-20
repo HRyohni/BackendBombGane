@@ -17,8 +17,7 @@ export function onJoinRoom(socket) {
         rooms[roomName].sockets.add(socket.id);
         rooms[roomName].playersName.push(playerName);
 
-        console.log(`Socket ${socket.id} joined room ${roomName} as ${playerName}`);
-        console.log(`Players in room ${roomName}: ${rooms[roomName].playersName}`);
+        socket.to(roomName).emit('newPlayerJoined', playerName);
     });
 }
 
@@ -31,7 +30,9 @@ export function onUserDisconnect(socket) {
                 rooms[roomName].playersName.splice(index, 1);
             }
             console.log(userName, " user disconnected from ", roomName);
-            roomMethods.removePlayerFromRoom(roomName, userName);
+            roomMethods.removePlayerFromRoom(roomName, userName)
+            socket.to(roomName).emit("playerLeftParty");
+
         }
 
     });
@@ -39,12 +40,36 @@ export function onUserDisconnect(socket) {
 
 
 export function onChatMessage(socket) {
-
     socket.on('sendMessage', ({message, username, room}) => {
         socket.to(room).emit('newMessage', {username: username, message: message});
     });
 }
 
+export function onJoinOrLeaveMsg(socket) {
+    socket.on('userJoined', (user,room,message) => {
+        socket.to(room).emit('newMessage', user,message);
+
+    });
+
+    socket.on('userLeft', (user,room,message) => {
+        socket.to(room).emit('newMessage', user,message);
+    });
+
+
+}
+
+
+export function onPlayerReady(socket) {
+    socket.on('sendPlayerReady', (username, room) => {
+        socket.to(room).emit('getPlayerReady', username);
+    });
+}
+
+export function onPlayerNotReady(socket) {
+    socket.on('sendPlayerNotReady', (username, room) => {
+        socket.to(room).emit('getPlayerNotReady', username);
+    });
+}
 
 export function onSocketDisconnect(socket) {
     socket.on('disconnect', async () => {
@@ -69,7 +94,6 @@ export function onSocketDisconnect(socket) {
 
 export function onNewUserConnected(socket) {
     socket.on('new user', async ({username, room}) => {
-
         userMethods.addUserToRoom(room, username);
         console.log(userMethods.getRoomData(room), "<---");
         console.log(username, "joined room ", room);
@@ -88,7 +112,6 @@ export function onNextPlayerTurn(socket) {
     socket.on('nextPlayer', (room, currentMainPlayer) => {
         socket.to(room).emit('getNextPlayer', userMethods.nextPlayerTurn(room, currentMainPlayer)); // Emit message with username
     });
-
 }
 
 export function onPickRandomPlayer(socket) {
@@ -146,6 +169,8 @@ export const socketMethods = {
     onJoinRoom,
     onUserDisconnect,
     onChatMessage,
-
+    onPlayerReady,
+    onPlayerNotReady,
+    onJoinOrLeaveMsg
 
 }

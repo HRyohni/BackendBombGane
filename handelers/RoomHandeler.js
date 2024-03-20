@@ -25,12 +25,10 @@ async function fetchRooms() {
         return await roomDB.find();
     } catch (error) {
         console.error(error);
-
     }
 }
 
 async function fetchRoomByID(roomID) {
-
     try {
         const records = await roomDB.find({});
 
@@ -70,7 +68,6 @@ async function removePlayerFromRoom(roomID, username) {
             console.log("Room not found");
             return null;
         }
-
         room.playersName = room.playersName.filter(player => player !== username);
 
         // Update the room in the database
@@ -79,18 +76,11 @@ async function removePlayerFromRoom(roomID, username) {
             { $set: { "Room.playersName": room.playersName } },
             { new: true }
         );
-
-        console.log("Player removed from room:", updatedRoom);
-        return updatedRoom;
+        return true;
     } catch (error) {
         console.error("Error removing player from room:", error);
         throw error; // Throw the error for handling upstream
     }
-}
-
-async function sendMessage(roomID,username)
-{
-    
 }
 
 export const roomMethods = {
