@@ -71,35 +71,6 @@ export function onPlayerNotReady(socket) {
     });
 }
 
-export function onSocketDisconnect(socket) {
-    socket.on('disconnect', async () => {
-        console.log("User disconnected");
-
-        // Iterate over all rooms the user was part of
-        const rooms = Object.keys(socket.rooms);
-        for (const room of rooms) {
-            console.log(`User disconnected from room ${room}`);
-
-            // Remove the disconnected user from the room
-            await userMethods.removeUserFromRoom(socket.id, room);
-
-            // Notify other users in the room about the disconnection
-            socket.to(room).emit('user left', socket.id);
-
-            // Fetch and emit updated room data to all users in the room
-            socket.to(room).emit('getRoomData', userMethods.getRoomData(room));
-        }
-    });
-}
-
-export function onNewUserConnected(socket) {
-    socket.on('new user', async ({username, room}) => {
-        userMethods.addUserToRoom(room, username);
-        console.log(userMethods.getRoomData(room), "<---");
-        console.log(username, "joined room ", room);
-        socket.to(room).emit('user joined', username);
-    });
-}
 
 
 export function onFetchAllUsers(socket) {
