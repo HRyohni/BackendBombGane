@@ -60,9 +60,7 @@ function getRoomData(roomName) {
 }
 
 
-function fetchFirstPlayer(roomName) {
-    return roomData[roomName][Math.floor(Math.random() * roomData[roomName].length)];
-}
+
 
 async function removeUserFromRoom(userId, room) {
     try {
@@ -103,7 +101,6 @@ export const userMethods = {
     fetchData,
     addUserToRoom,
     getRoomData,
-    fetchFirstPlayer,
     nextPlayerTurn,
     removeUserFromRoom(id, room) {
 

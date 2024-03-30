@@ -18,7 +18,7 @@ async function _fetchGameModeSettings(name) {
     return await GameMode.findOne({name: name});
 }
 
-async function StartGame(GameName) {
+async function  StartGame(GameName) {
     const GameSettings = await _fetchGameModeSettings(GameName);
     return _getTwoLettersFromWord(_getRandomWordFromArray(GameSettings.words))
 }

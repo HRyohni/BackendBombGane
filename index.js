@@ -10,7 +10,14 @@ import GameMode from './models/gameSettingsModel.js';
 import {userMethods} from './handelers/userHandler.js';
 import {gameModeMethods} from './handelers/GameModeHandler.js';
 import {roomMethods} from './handelers/RoomHandeler.js';
-import {onChatMessage, onJoinOrLeaveMsg, onPlayerReady, socketMethods} from './handelers/socketHandlers.js';
+import {
+    clientSideTimerUpdate, getLetters,
+    onChatMessage,
+    onJoinOrLeaveMsg,
+    onPickRandomPlayer,
+    onPlayerReady,
+    socketMethods
+} from './handelers/socketHandlers.js';
 
 
 import http from 'http';
@@ -59,6 +66,9 @@ io.on('connection', (socket) => {
     socketMethods.onJoinOrLeaveMsg(socket);
     socketMethods.onPlayerReady(socket);
     socketMethods.onPlayerNotReady(socket);
+    socketMethods.onPickRandomPlayer(socket);
+    socketMethods.getLetters(socket);
+    socketMethods.clientSideTimerUpdate(socket);
 });
 
 
