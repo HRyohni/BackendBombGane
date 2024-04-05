@@ -12,11 +12,11 @@ import {gameModeMethods} from './handelers/GameModeHandler.js';
 import {roomMethods} from './handelers/RoomHandeler.js';
 import {
     clientSideTimerUpdate, getLetters,
-    onChatMessage,
-    onJoinOrLeaveMsg,
+    onChatMessage, onCheckCorrectWord, onDisconnect,
+    onJoinOrLeaveMsg, onNextPlayerTurn,
     onPickRandomPlayer,
-    onPlayerReady,
-    socketMethods
+    onPlayerReady, onResetTimer,
+    socketMethods, testConnection
 } from './handelers/socketHandlers.js';
 
 
@@ -68,7 +68,15 @@ io.on('connection', (socket) => {
     socketMethods.onPlayerNotReady(socket);
     socketMethods.onPickRandomPlayer(socket);
     socketMethods.getLetters(socket);
+    socketMethods.onCheckCorrectWord(socket);
+    socketMethods.onResetTimer(socket);
     socketMethods.clientSideTimerUpdate(socket);
+    socketMethods.onNextPlayerTurn(socket);
+    socketMethods.testConnection(socket);
+    socketMethods.onDisconnect(socket);
+
+
+
 });
 
 
@@ -91,9 +99,7 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
     try {
         const {username, password} = req.body;
-        console.log(await userMethods.checkCredentials(username, password));
         if (await userMethods.checkCredentials(username, password)) {
-            console.log(await userMethods.fetchData(username));
             res.status(200).json({result: await userMethods.fetchData(username)});
         }
         res.status(200);
@@ -143,7 +149,6 @@ app.post('/api/room/create-room', async (req, res) => {
 
 app.get('/api/room/fetch-rooms', async (req, res) => {
     try {
-        console.log(roomMethods.fetchRooms());
         res.status(200).json(await roomMethods.fetchRooms())
     } catch (error) {
         res.status(500);

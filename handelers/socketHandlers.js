@@ -1,40 +1,77 @@
 import {userMethods} from "./userHandler.js";
 import {gameModeMethods} from "./GameModeHandler.js";
 import {roomMethods} from "./RoomHandeler.js";
+import * as trace_events from "trace_events";
 
 const rooms = {};
+
+
+function _getNextPlayer(currentPlayerName, players) {
+    const currentIndex = players.findIndex(player => player === currentPlayerName);
+    if (currentIndex === -1) {
+        return null;
+    } else {
+        // Calculate the index of the next player
+        if (currentIndex + 1 < players.length) {
+            return players[currentIndex + 1];
+        } else {
+            return players[0];
+        }
+    }
+}
 
 export function onJoinRoom(socket) {
     socket.on('joinRoom', (roomName, playerName) => {
         // Create room if it doesn't exist
         if (!rooms[roomName]) {
             rooms[roomName] = {sockets: new Set(), playersName: []};
+        } else {
+            // Check if the player is already in the room
+            if (rooms[roomName].playersName.includes(playerName)) {
+                // Player is already in the room, so skip adding them again
+                console.log(`${playerName} is already in the room ${roomName}`);
+                return;
+            }
         }
+
         // Add the socket to the room
         socket.join(roomName);
         rooms[roomName].sockets.add(socket.id);
         rooms[roomName].playersName.push(playerName);
-
+        console.log(socket.adapter.rooms.get(roomName));
+        console.log("rooms");
+        console.log(rooms);
         socket.to(roomName).emit('newPlayerJoined', playerName);
     });
 }
 
+
 export function onUserDisconnect(socket) {
     socket.on('disconnectUserFromRoom', (roomName, userName) => {
         if (rooms.hasOwnProperty(roomName)) {
-            rooms[roomName].sockets.delete(socket);
+            // Leave the room
+            socket.leave(roomName);
+
+            // Remove the socket from the room's sockets set
+            rooms[roomName].sockets.delete(socket.id);
+
+            // Remove the user from the room's playersName array
             const index = rooms[roomName].playersName.indexOf(userName);
             if (index !== -1) {
                 rooms[roomName].playersName.splice(index, 1);
             }
-            roomMethods.removePlayerFromRoom(roomName, userName)
+
+            // Call any other relevant functions to handle user removal
+            roomMethods.removePlayerFromRoom(roomName, userName);
+
+            // Emit event to notify other users in the room
             socket.to(roomName).emit("playerLeftParty");
 
+            // Log updated room information
+            console.log(`Room ${roomName} after user disconnect:`, rooms[roomName]);
         }
-
     });
 }
-
 
 export function onChatMessage(socket) {
     socket.on('sendMessage', ({message, username, room}) => {
@@ -78,7 +115,15 @@ export function onPickRandomPlayer(socket) {
 
 export function clientSideTimerUpdate(socket) {
     socket.on('timerUpdate', (room, timer) => {
-        socket.to(room).emit('timerGetUpdate', timer); // Emit message with username
+        socket.to(room).emit('timerGetUpdate', timer);
+    });
+}
+
+export function onResetTimer(socket) {
+    socket.on('resetTimer', (room) => {
+        console.log("reset timer")
+        socket.to(room).emit('getResetTimer');
+        socket.emit('getResetTimer');
     });
 }
 
@@ -104,35 +149,59 @@ export function getLetters(socket) {
     });
 }
 
-export function checkCorrectGuess(socket) {
-    socket.on('getLetters', (room, words) => {
 
-        // Pick a random word from the array
-        const randomWord = words[Math.floor(Math.random() * words.length)];
+export async function onCheckCorrectWord(socket) {
+    socket.on('checkCorrectWord', async (room, word, gamemodeName) => {
 
-        // Ensure the word has at least two characters
-        if (randomWord.length < 2) {
-            console.error("Word is too short to select letters.");
-            return;
+        if (await gameModeMethods.doesWordExist(gamemodeName, word) === true) {
+            await socket.to(room).emit('isWordCorrect', true);
+            await socket.emit('isWordCorrect', true);
+        } else {
+            await socket.to(room).emit('isWordCorrect', false);
+            await socket.emit('isWordCorrect', false);
         }
 
-        // Pick a random starting index within the word
-        const startIndex = Math.floor(Math.random() * (randomWord.length - 1));
-
-        // Extract the substring of two adjacent letters
-        const randomLetters = randomWord.substring(startIndex, startIndex + 2);
-        socket.to(room).emit('receiveLetters', randomLetters); // Emit random word and letters
-        socket.emit('receiveLetters', randomLetters);
     });
 }
 
 
 export function onNextPlayerTurn(socket) {
-    socket.on('nextPlayer', (room, currentMainPlayer) => {
-        socket.to(room).emit('getNextPlayer', userMethods.nextPlayerTurn(room, currentMainPlayer)); // Emit message with username
+    socket.on('nextPlayer', (room, currentPlayer, allPlayers) => {
+        let nextPlayer = _getNextPlayer(currentPlayer, allPlayers)
+
+        socket.emit('getNextPlayer', nextPlayer);
+        socket.to(room).emit('getNextPlayer', nextPlayer);
     });
 }
 
+export function testConnection(socket) {
+    socket.on('sendTest', (room) => {
+        socket.to(room).emit('getTestConnection');
+    });
+}
+
+export function onDisconnect(socket) {
+    socket.on('disconnect', () => {
+        // Find the room where this socket is
+        let roomName;
+        for (const [name, room] of Object.entries(rooms)) {
+            if (room.sockets.has(socket.id)) {
+                roomName = name;
+                break;
+            }
+        }
+
+        // If the socket was in a room, remove it
+        if (roomName) {
+            rooms[roomName].sockets.delete(socket.id);
+            const playerIndex = rooms[roomName].playersName.indexOf(playerName);
+            if (playerIndex > -1) {
+                rooms[roomName].playersName.splice(playerIndex, 1);
+            }
+        }
+    });
+
+}
 export const socketMethods = {
     onJoinRoom,
     onUserDisconnect,
@@ -142,6 +211,11 @@ export const socketMethods = {
     onJoinOrLeaveMsg,
     onPickRandomPlayer,
     clientSideTimerUpdate,
-    getLetters
+    getLetters,
+    onCheckCorrectWord,
+    onNextPlayerTurn,
+    onResetTimer,
+    testConnection,
+    onDisconnect
 
 }

@@ -26,7 +26,7 @@ async function  StartGame(GameName) {
 async function doesWordExist(GameName,word)
 {
     const GameSettings = await _fetchGameModeSettings(GameName);
-    return GameSettings.words.includes(word);
+    return GameSettings.words.includes(word.toLowerCase());
 
 }
 
