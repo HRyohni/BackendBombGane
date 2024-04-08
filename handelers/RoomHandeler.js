@@ -46,7 +46,6 @@ async function fetchRoomByID(roomID) {
 
 async function updateRoomById(roomId, newData) {
     try {
-
         const updatedRoom = await roomDB.findByIdAndUpdate({_id:roomId}, { Room: newData });
         if (!updatedRoom) {
             console.log("Room not found");

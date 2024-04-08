@@ -13,9 +13,9 @@ import {roomMethods} from './handelers/RoomHandeler.js';
 import {
     clientSideTimerUpdate, getLetters,
     onChatMessage, onCheckCorrectWord, onDisconnect,
-    onJoinOrLeaveMsg, onNextPlayerTurn,
+    onJoinOrLeaveMsg, onLooseLife, onNextPlayerTurn,
     onPickRandomPlayer,
-    onPlayerReady, onResetTimer,
+    onPlayerReady, onPlayerWin, onPointsReceived, onResetTimer,
     socketMethods, testConnection
 } from './handelers/socketHandlers.js';
 
@@ -71,22 +71,22 @@ io.on('connection', (socket) => {
     socketMethods.onCheckCorrectWord(socket);
     socketMethods.onResetTimer(socket);
     socketMethods.clientSideTimerUpdate(socket);
+    socketMethods.onLooseLife(socket);
+    socketMethods.onPlayerWin(socket);
     socketMethods.onNextPlayerTurn(socket);
     socketMethods.testConnection(socket);
     socketMethods.onDisconnect(socket);
-
-
-
+    socketMethods.onPointsReceived(socket);
 });
 
 
 app.post('/api/register', async (req, res) => {
     try {
-        const {username, mail, password} = req.body;
+        let {username, mail, password, profilePicture} = req.body;
         if (!mail) {
             return res.status(400).json({error: 'Email is required'});
         }
-        const user = new User({username: username, mail: mail, password: userMethods.generateHash(password)});
+        const user = new User({username: username, mail: mail, password: userMethods.generateHash(password), profilePicture: profilePicture});
         await user.save();
         console.log('New user added!');
         return res.status(200).json({result: true});
@@ -126,6 +126,7 @@ app.post('/api/fetchUser', async (req, res) => {
 // # Gamemodes
 // adding new gamemodes for later
 app.post('/api/add-gamemode', async (req, res) => {
+    // todo let {username, mail, password, profilePicture} = req.body;
     const gameMode = new GameMode({name: "colors", words: ["red", "yellow", "green", "black", "white", "orange"]});
     await gameMode.save();
     res.send('new Gamemode Saved')

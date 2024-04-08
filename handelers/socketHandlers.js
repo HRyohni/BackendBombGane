@@ -79,6 +79,13 @@ export function onChatMessage(socket) {
     });
 }
 
+export function onPlayerWin(socket) {
+    socket.on('onPlayerWin', (roomId, playersName) => {
+        socket.to(roomId).emit('fetchPlayerWin', playersName);
+        socket.emit('fetchPlayerWin', playersName);
+    });
+}
+
 export function onJoinOrLeaveMsg(socket) {
     socket.on('userJoined', (user, room, message) => {
         socket.to(room).emit('newMessage', user, message);
@@ -131,6 +138,8 @@ export function getLetters(socket) {
     socket.on('getLetters', (room, words) => {
 
         // Pick a random word from the array
+        console.log("error is here");
+        console.log(words);
         const randomWord = words[Math.floor(Math.random() * words.length)];
 
         // Ensure the word has at least two characters
@@ -149,7 +158,6 @@ export function getLetters(socket) {
     });
 }
 
-
 export async function onCheckCorrectWord(socket) {
     socket.on('checkCorrectWord', async (room, word, gamemodeName) => {
 
@@ -161,6 +169,13 @@ export async function onCheckCorrectWord(socket) {
             await socket.emit('isWordCorrect', false);
         }
 
+    });
+}
+
+export async function onLooseLife(socket) {
+    socket.on('onLooseLife', async (room, player, playerHp) => {
+        await socket.to(room).emit('getLifeInfo', player, playerHp);
+        await socket.emit('getLifeInfo', player, playerHp);
     });
 }
 
@@ -180,6 +195,13 @@ export function testConnection(socket) {
     });
 }
 
+export function onPointsReceived(socket) {
+    socket.on('onPointsReceived', (room, username, points) => {
+        socket.emit('fetchScore', username, points);
+        socket.to(room).emit('fetchScore', username, points);
+    });
+}
+
 export function onDisconnect(socket) {
     socket.on('disconnect', () => {
         // Find the room where this socket is
@@ -194,14 +216,12 @@ export function onDisconnect(socket) {
         // If the socket was in a room, remove it
         if (roomName) {
             rooms[roomName].sockets.delete(socket.id);
-            const playerIndex = rooms[roomName].playersName.indexOf(playerName);
-            if (playerIndex > -1) {
-                rooms[roomName].playersName.splice(playerIndex, 1);
-            }
+
         }
     });
 
 }
+
 export const socketMethods = {
     onJoinRoom,
     onUserDisconnect,
@@ -216,6 +236,9 @@ export const socketMethods = {
     onNextPlayerTurn,
     onResetTimer,
     testConnection,
-    onDisconnect
+    onDisconnect,
+    onLooseLife,
+    onPlayerWin,
+    onPointsReceived
 
 }
