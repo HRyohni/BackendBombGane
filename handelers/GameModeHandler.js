@@ -18,6 +18,14 @@ async function _fetchGameModeSettings(name) {
     return await GameMode.findOne({name: name});
 }
 
+async function fetchGamemodes() {
+    try {
+        return await GameMode.find();
+    } catch (error) {
+        console.error(error);
+    }
+}
+
 async function  StartGame(GameName) {
     const GameSettings = await _fetchGameModeSettings(GameName);
     return _getTwoLettersFromWord(_getRandomWordFromArray(GameSettings.words))
@@ -34,5 +42,6 @@ async function doesWordExist(GameName,word)
 export const gameModeMethods = {
     StartGame,
     doesWordExist,
+    fetchGamemodes,
 
 }

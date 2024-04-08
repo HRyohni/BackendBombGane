@@ -10,6 +10,15 @@ const gameSchema = new mongoose.Schema({
         required: true,
 
     },
+    description: {
+        type: String,
+        required: false,
+    },
+
+    Author: {
+        type: String,
+        required: false,
+    },
 });
 
 const GameMode = mongoose.model("GameMode", gameSchema);

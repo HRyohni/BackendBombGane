@@ -86,7 +86,12 @@ app.post('/api/register', async (req, res) => {
         if (!mail) {
             return res.status(400).json({error: 'Email is required'});
         }
-        const user = new User({username: username, mail: mail, password: userMethods.generateHash(password), profilePicture: profilePicture});
+        const user = new User({
+            username: username,
+            mail: mail,
+            password: userMethods.generateHash(password),
+            profilePicture: profilePicture
+        });
         await user.save();
         console.log('New user added!');
         return res.status(200).json({result: true});
@@ -125,11 +130,20 @@ app.post('/api/fetchUser', async (req, res) => {
 
 // # Gamemodes
 // adding new gamemodes for later
-app.post('/api/add-gamemode', async (req, res) => {
-    // todo let {username, mail, password, profilePicture} = req.body;
-    const gameMode = new GameMode({name: "colors", words: ["red", "yellow", "green", "black", "white", "orange"]});
+app.post('/api/gamemode/add-gamemode', async (req, res) => {
+    let {name, words, description, Author} = req.body;
+
+    const gameMode = new GameMode({name: name, words: words, description: description, Author: Author});
     await gameMode.save();
     res.send('new Gamemode Saved')
+})
+
+app.get('/api/gamemode/fetch-gamemodes', async (req, res) => {
+    try {
+        res.status(200).json(await gameModeMethods.fetchGamemodes())
+    } catch (error) {
+        res.status(500);
+    }
 })
 
 app.get('/api/gameMode/:gameModeId', async (req, res) => {
@@ -150,6 +164,7 @@ app.post('/api/room/create-room', async (req, res) => {
 
 app.get('/api/room/fetch-rooms', async (req, res) => {
     try {
+
         res.status(200).json(await roomMethods.fetchRooms())
     } catch (error) {
         res.status(500);
@@ -165,11 +180,10 @@ app.get('/api/room/fetch-room/:roomID', async (req, res) => {
     }
 });
 
- app.post('/api/room/update-room', async (req, res) => {
-    const {roomID , data} = await req.body;
-    res.status(200).send(await roomMethods.updateRoomById(roomID,data));
+app.post('/api/room/update-room', async (req, res) => {
+    const {roomID, data} = await req.body;
+    res.status(200).send(await roomMethods.updateRoomById(roomID, data));
 })
-
 
 
 server.listen(port, () => {
