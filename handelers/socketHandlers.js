@@ -138,8 +138,6 @@ export function getLetters(socket) {
     socket.on('getLetters', (room, words) => {
 
         // Pick a random word from the array
-        console.log("error is here");
-        console.log(words);
         const randomWord = words[Math.floor(Math.random() * words.length)];
 
         // Ensure the word has at least two characters
@@ -195,10 +193,52 @@ export function testConnection(socket) {
     });
 }
 
+export function saveScore(socket) {
+    socket.on('savePoints', (player) => {
+        console.log(player);
+        userMethods.updateUserMoney(player.username, player.score);
+    });
+}
+
+export function wasteMoney(socket) {
+    socket.on('wasteMoney', (username, newMoney) => {
+        userMethods.updateUserMoney(username, newMoney);
+        socket.emit("changeUserData");
+    });
+}
+
+export function changeProfilePicture(socket) {
+    socket.on('updateProfilePicture', (player, profilePicture) => {
+        userMethods.updateUserProfilePicture(player, profilePicture);
+        socket.emit("changeUserData"); // todo: remove
+    });
+}
+
+export function changeConfetti(socket) {
+    socket.on('updateConfetti', (player, confettiColor, victoryColor) => {
+        userMethods.updateUserConfettiColor(player, confettiColor);
+        userMethods.updateUserBackgroundColor(player, victoryColor);
+        socket.emit("changeUserData"); // todo: remove
+    });
+}
+
+
 export function onPointsReceived(socket) {
     socket.on('onPointsReceived', (room, username, points) => {
         socket.emit('fetchScore', username, points);
         socket.to(room).emit('fetchScore', username, points);
+    });
+}
+
+export function getUserMoney(socket) {
+    socket.on('getMoney', async (username) => {
+        socket.emit('fetchUserMoney', await userMethods.getUserMoney(username));
+    });
+}
+
+export function fetchUserData(socket) {
+    socket.on('getUserData', async (username) => {
+        socket.emit('fetchUserData', await userMethods.fetchData(username));
     });
 }
 
@@ -239,6 +279,12 @@ export const socketMethods = {
     onDisconnect,
     onLooseLife,
     onPlayerWin,
-    onPointsReceived
+    onPointsReceived,
+    saveScore,
+    getUserMoney,
+    changeProfilePicture,
+    wasteMoney,
+    fetchUserData,
+    changeConfetti
 
 }

@@ -17,6 +17,19 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+
+    confettiColor: {
+        type: String,
+        required: true,
+    },
+    victoryBackground: {
+        type: String,
+        required: true,
+    },
+    money: {
+        type: Number,
+        required: true,
+    },
 });
 
 

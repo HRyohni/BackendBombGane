@@ -11,12 +11,12 @@ import {userMethods} from './handelers/userHandler.js';
 import {gameModeMethods} from './handelers/GameModeHandler.js';
 import {roomMethods} from './handelers/RoomHandeler.js';
 import {
-    clientSideTimerUpdate, getLetters,
-    onChatMessage, onCheckCorrectWord, onDisconnect,
-    onJoinOrLeaveMsg, onLooseLife, onNextPlayerTurn,
-    onPickRandomPlayer,
-    onPlayerReady, onPlayerWin, onPointsReceived, onResetTimer,
-    socketMethods, testConnection
+    changeConfetti,
+    changeProfilePicture,
+    fetchUserData,
+    getUserMoney,
+    socketMethods,
+    wasteMoney
 } from './handelers/socketHandlers.js';
 
 
@@ -77,6 +77,12 @@ io.on('connection', (socket) => {
     socketMethods.testConnection(socket);
     socketMethods.onDisconnect(socket);
     socketMethods.onPointsReceived(socket);
+    socketMethods.saveScore(socket);
+    socketMethods.getUserMoney(socket);
+    socketMethods.changeProfilePicture(socket);
+    socketMethods.wasteMoney(socket);
+    socketMethods.fetchUserData(socket);
+    socketMethods.changeConfetti(socket);
 });
 
 
@@ -90,10 +96,12 @@ app.post('/api/register', async (req, res) => {
             username: username,
             mail: mail,
             password: userMethods.generateHash(password),
-            profilePicture: profilePicture
+            profilePicture: profilePicture,
+            confettiColor: "yellow",
+            victoryBackground: "white",
+            money: 0,
         });
         await user.save();
-        console.log('New user added!');
         return res.status(200).json({result: true});
     } catch (error) {
         console.log(error);
@@ -126,6 +134,19 @@ app.post('/api/fetchUser', async (req, res) => {
         return res.status(500).json({result: false, error: 'Internal server error'});
     }
 });
+
+app.get('/api/user/profilePicture/:username', async (req, res) => {
+    try {
+
+        const username = req.params.username;
+        const user = await userMethods.fetchData(username);
+        res.status(200).json(user.profilePicture );
+    } catch (error) {
+        console.error('Error fetching profile picture:', error);
+        res.status(200).json({ profilePictureUrl: "https://cdn.discordapp.com/attachments/902618947759788043/1226461549258866718/img3.png?ex=6624da53&is=66126553&hm=0b4702e4d72eb1e2a9617856f2d6e90013a2eb7176dc88929214be3925cff64c&\n" });
+    }
+});
+
 
 
 // # Gamemodes

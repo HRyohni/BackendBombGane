@@ -1,6 +1,5 @@
 import User from '../models/userModel.js';
 import bcrypt from 'bcrypt'
-import {createHash} from "crypto";
 
 const roomData = {};
 
@@ -38,71 +37,110 @@ async function fetchData(username) {
     return User.findOne({username: username});
 }
 
-
-// Function to add a user to a room
-function addUserToRoom(roomName, userName) {
-    console.log(roomData);
-    // Check if the room exists in the data object
-    if (!roomData.hasOwnProperty(roomName)) {
-        // If the room doesn't exist, create an empty array for it
-        roomData[roomName] = [];
-    }
-
-    // Add the user to the room
-    roomData[roomName].push(userName);
-
-    // Optionally, you can return the updated array for further use
-    return roomData[roomName];
-}
-
-function getRoomData(roomName) {
-    return roomData[roomName];
-}
-
-
-
-
-async function removeUserFromRoom(userId, room) {
+async function updateUser(username, newData) {
     try {
-        const roomData = await userMethods.getRoomData(room);
-
-        // Find the index of the user in the array
-        const userIndex = roomData.findIndex(user => user.id === userId);
-
-        // If the user is found, remove them from the array
-        if (userIndex !== -1) {
-            roomData.splice(userIndex, 1);
-            console.log(`User with id ${userId} removed from room ${room}`);
-        } else {
-            console.log(`User with id ${userId} not found in room ${room}`);
-        }
-
-        // Update the room data in your database or storage
-        // Assuming your data is stored in a database, update it here
-        // For example, you might use Mongoose to update the user list in the database
-
-        // Save the updated room data (this is just a placeholder, replace it with your actual logic)
-        // await saveUpdatedRoomDataToDatabase(room, roomData);
-
-        return roomData;
+        return await User.findOneAndUpdate({username: username}, newData, {new: true});
     } catch (error) {
-        console.error("Error removing user from room:", error);
-        return [];
+        console.error("Error updating user:", error);
+        return null;
     }
 }
 
-function nextPlayerTurn(roomName, currentMainPlayer) {
-    return roomData[roomName][roomData[roomName].findIndex(x => x === currentMainPlayer)+1]; //ToDo: fix overfill with arrey
+async function updateUserMoney(username, newMoney) {
+    try {
+        const user = await User.findOneAndUpdate(
+            { username: username },
+            { $set: { money: newMoney } },
+            { new: true }
+        );
+        console.log(user);
+        return user;
+    } catch (error) {
+        console.error("Error updating user's money:", error);
+        return null;
+    }
 }
+
+async function updateUserProfilePicture(username, newPicture) {
+    try {
+        const user = await User.findOneAndUpdate(
+            { username: username },
+            { $set: { profilePicture: newPicture } },
+            { new: true }
+        );
+        console.log(username, newPicture);
+        console.log(user);
+        return user;
+    } catch (error) {
+        console.error("Error updating user's profile picture:", error);
+        return null;
+    }
+}
+
+
+
+async function getUserMoney(username) {
+    try {
+        const user = await User.findOne({ username: username });
+        if (!user) {
+            console.error("User not found");
+            return null;
+        }
+        return user.money;
+    } catch (error) {
+        console.error("Error getting user's money:", error);
+        return null;
+    }
+}
+
+async function updateUserConfettiColor(username, newColor) {
+    try {
+        const user = await User.findOneAndUpdate(
+            { username: username },
+            { $set: { confettiColor: newColor } },
+            { new: true }
+        );
+        console.log(user);
+        return user;
+    } catch (error) {
+        console.error("Error updating user's confetti color:", error);
+        return null;
+    }
+}
+
+async function updateUserBackgroundColor(username, newColor) {
+    try {
+        const user = await User.findOneAndUpdate(
+            { username: username },
+            { $set: { victoryBackground: newColor } },
+            { new: true }
+        );
+        console.log(user);
+        return user;
+    } catch (error) {
+        console.error("Error updating user's background color:", error);
+        return null;
+    }
+}
+
+
+
+
+
+
+
+
+
 
 export const userMethods = {
     checkCredentials,
     generateHash,
     fetchData,
-    addUserToRoom,
-    getRoomData,
-    nextPlayerTurn,
-    removeUserFromRoom(id, room) {
+    updateUser,
+    updateUserMoney,
+    getUserMoney,
+    updateUserProfilePicture,
+    updateUserConfettiColor,
+    updateUserBackgroundColor
 
-    }
 }
