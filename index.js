@@ -45,7 +45,7 @@ mongoose
 app.use(express.json());
 app.use('/api', router);
 app.use(cors({
-    origin: ["https://thebombgame.netlify.app/"], // Replace with the appropriate origin
+    origin: "https://thebombgame.netlify.app", // Replace with the appropriate origin
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
 }));
@@ -53,7 +53,7 @@ app.use(cors({
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: ["https://thebombgame.netlify.app/g"], // Specify the allowed origin for WebSocket requests
+        origin: ["https://thebombgame.netlify.app"], // Specify the allowed origin for WebSocket requests
         methods: ['GET', 'POST'],
         allowedHeaders: ['Authorization'],
         credentials: true,
