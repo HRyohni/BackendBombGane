@@ -30,6 +30,10 @@ const userSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
+    scoreboard: {
+        type: Number,
+        required: false,
+    },
 });
 
 

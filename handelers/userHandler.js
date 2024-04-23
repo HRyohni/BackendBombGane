@@ -1,7 +1,44 @@
 import User from '../models/userModel.js';
 import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken';
 
-const roomData = {};
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
+
+// Access the JWT secret key
+const jwtSecret = process.env.JWT_SECRET;
+
+function generateToken(username, password) {
+    return jwt.sign({ username, password }, jwtSecret, { expiresIn: '1h' });
+}
+
+
+function verifyToken(req, res, next) {
+    const token = req.headers['authorization'];
+    if (!token) return res.status(403).send({ auth: false, message: 'No token provided.' });
+
+    jwt.verify(token, jwtSecret, function(err, decoded) {
+        if (err) return res.status(500).send({ auth: false, message: 'Failed to authenticate token.' });
+
+        // If everything is good, save to request for use in other routes
+        req.username = decoded.username;
+        next();
+    });
+}
+
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (token == null) return res.sendStatus(401); // No token provided
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+        if (err) return res.sendStatus(403); // Token is invalid
+        req.user = user;
+        next(); // Token is valid, proceed to the next middleware or route handler
+    });
+}
 
 function generateHash(string) {
     return bcrypt.hashSync(string, bcrypt.genSaltSync(10));
@@ -12,25 +49,27 @@ function _excludeProperties() {
 }
 
 async function _comparePasswords(password, hashPassword) {
-    console.log("Input Password:", password);
-    console.log("Stored Hashed Password:", hashPassword);
-
     const result = await bcrypt.compare(password, hashPassword);
-    console.log("Password Comparison Result:", result);
-
     return result;
 }
 
 async function checkCredentials(username, password) {
-    const user = await User.findOne({"username": username});
+    const user = await User.findOne({ username });
 
     if (!user) {
-        console.log("can't find user!");
-        return false;
+        console.log("User not found");
+        return null;
     }
 
-    return await _comparePasswords(password, user.password) ? _excludeProperties() : false;
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+        console.log("Invalid password");
+        return null;
+    }
+
+    return user;
 }
+
 
 
 async function fetchData(username) {
@@ -46,20 +85,34 @@ async function updateUser(username, newData) {
     }
 }
 
-async function updateUserMoney(username, newMoney) {
+async function updateUserMoney(username, moneyToAdd) {
     try {
-        const user = await User.findOneAndUpdate(
+        const user = await fetchData(username);
+        if (!user) {
+            console.error("User not found");
+            return null;
+        }
+
+        // Calculate the new money and scoreboard values
+        const newMoney = user.money + moneyToAdd;
+        const newScoreboard = user.scoreboard + moneyToAdd; // Assuming scoreboard is same as money
+
+        // Update the user's money and scoreboard fields with the new values
+        const updatedUser = await User.findOneAndUpdate(
             { username: username },
-            { $set: { money: newMoney } },
+            { $set: { money: newMoney, scoreboard: newScoreboard } },
             { new: true }
         );
-        console.log(user);
-        return user;
+        console.log("Updated user's money:", updatedUser.money);
+        console.log("Updated user's scoreboard:", updatedUser.scoreboard);
+        return updatedUser;
     } catch (error) {
-        console.error("Error updating user's money:", error);
+        console.error("Error updating user's money and scoreboard:", error);
         return null;
     }
 }
+
+
 
 async function updateUserProfilePicture(username, newPicture) {
     try {
@@ -125,6 +178,16 @@ async function updateUserBackgroundColor(username, newColor) {
 
 
 
+async function fetchAllUsers() {
+    try {
+        const users = await User.find({});
+        return users;
+    } catch (error) {
+        console.error("Error fetching all users:", error);
+        return null;
+    }
+}
+
 
 
 
@@ -134,6 +197,7 @@ async function updateUserBackgroundColor(username, newColor) {
 
 export const userMethods = {
     checkCredentials,
+    generateToken,
     generateHash,
     fetchData,
     updateUser,
@@ -141,6 +205,9 @@ export const userMethods = {
     getUserMoney,
     updateUserProfilePicture,
     updateUserConfettiColor,
-    updateUserBackgroundColor
+    updateUserBackgroundColor,
+    verifyToken,
+    authenticateToken,
+    fetchAllUsers,
 
 }

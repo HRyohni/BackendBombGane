@@ -1,12 +1,11 @@
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import express from 'express';
+import jwt from 'jsonwebtoken';
 
 import roomDB from "./models/roomModel.js";
 import User from './models/userModel.js';
 import GameMode from './models/gameSettingsModel.js';
-
-
 import {userMethods} from './handelers/userHandler.js';
 import {gameModeMethods} from './handelers/GameModeHandler.js';
 import {roomMethods} from './handelers/RoomHandeler.js';
@@ -19,6 +18,9 @@ import {
     wasteMoney
 } from './handelers/socketHandlers.js';
 
+const JWT_SECRET_KEY = 'your-secret-key';
+
+
 
 import http from 'http';
 import {Server} from 'socket.io';
@@ -29,7 +31,7 @@ import cors from "cors";
 const app = express();
 const router = express.Router();
 const port = process.env.PORT || 3000;
-const jwtKey = process.env.JWT_SECRET_KEY;
+
 dotenv.config({path: `./.env`});
 
 mongoose
@@ -43,7 +45,7 @@ mongoose
 app.use(express.json());
 app.use('/api', router);
 app.use(cors({
-    origin: 'http://127.0.0.1:3000', // Replace with the appropriate origin
+    origin: ["https://thebombgame.netlify.app/"], // Replace with the appropriate origin
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
 }));
@@ -51,7 +53,7 @@ app.use(cors({
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: 'http://127.0.0.1:5173', // Specify the allowed origin for WebSocket requests
+        origin: ["https://thebombgame.netlify.app/g"], // Specify the allowed origin for WebSocket requests
         methods: ['GET', 'POST'],
         allowedHeaders: ['Authorization'],
         credentials: true,
@@ -100,6 +102,7 @@ app.post('/api/register', async (req, res) => {
             confettiColor: "yellow",
             victoryBackground: "white",
             money: 0,
+            scoreboard: 0,
         });
         await user.save();
         return res.status(200).json({result: true});
@@ -111,16 +114,21 @@ app.post('/api/register', async (req, res) => {
 
 app.post('/api/login', async (req, res) => {
     try {
-        const {username, password} = req.body;
-        if (await userMethods.checkCredentials(username, password)) {
-            res.status(200).json({result: await userMethods.fetchData(username)});
+
+        const { username, password } = req.body;
+        const user = await userMethods.checkCredentials(username, password);
+        if (user) {
+            const token = userMethods.generateToken(username , password);
+            res.json({ token, user });
+        } else {
+            res.status(401).json({ error: 'Invalid credentials' });
         }
-        res.status(200);
     } catch (error) {
         console.log(error);
-        return res.status(500).json({result: false, error: 'Internal server error'});
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
 
 app.post('/api/fetchUser', async (req, res) => {
     try {
@@ -140,13 +148,22 @@ app.get('/api/user/profilePicture/:username', async (req, res) => {
 
         const username = req.params.username;
         const user = await userMethods.fetchData(username);
-        res.status(200).json(user.profilePicture );
+        res.status(200).json(user.profilePicture);
     } catch (error) {
         console.error('Error fetching profile picture:', error);
-        res.status(200).json({ profilePictureUrl: "https://cdn.discordapp.com/attachments/902618947759788043/1226461549258866718/img3.png?ex=6624da53&is=66126553&hm=0b4702e4d72eb1e2a9617856f2d6e90013a2eb7176dc88929214be3925cff64c&\n" });
+        res.status(200).json({profilePictureUrl: "https://cdn.discordapp.com/attachments/902618947759788043/1226461549258866718/img3.png?ex=6624da53&is=66126553&hm=0b4702e4d72eb1e2a9617856f2d6e90013a2eb7176dc88929214be3925cff64c&\n"});
     }
 });
 
+app.get('/api/user/fetchAllUsers', async (req, res) => {
+    try {
+        const user = await userMethods.fetchAllUsers();
+        res.status(200).json(user);
+    } catch (error) {
+        console.error('Error fetching profile picture:', error);
+        res.status(200).json({profilePictureUrl: "https://cdn.discordapp.com/attachments/902618947759788043/1226461549258866718/img3.png?ex=6624da53&is=66126553&hm=0b4702e4d72eb1e2a9617856f2d6e90013a2eb7176dc88929214be3925cff64c&\n"});
+    }
+});
 
 
 // # Gamemodes
@@ -180,6 +197,7 @@ app.get('/api/gameMode/:gameModeId', async (req, res) => {
 
 // # Rooms
 app.post('/api/room/create-room', async (req, res) => {
+    console.log(req.body);
     res.status(200).send(roomMethods.createRoom(req.body))
 })
 

@@ -195,7 +195,6 @@ export function testConnection(socket) {
 
 export function saveScore(socket) {
     socket.on('savePoints', (player) => {
-        console.log(player);
         userMethods.updateUserMoney(player.username, player.score);
     });
 }

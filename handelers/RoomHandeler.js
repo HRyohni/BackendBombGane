@@ -1,9 +1,10 @@
 import roomDB from "../models/roomModel.js";
 
 async function createRoom(data) {
-    const {roomName, gameModeName, lives, timer, timePerPlayer} = data;
+    const {host,roomName, gameModeName, lives, timer, timePerPlayer} = data;
     const roomdb = new roomDB({
         Room: {
+            host: host,
             roomName: roomName,
             gameModeName: gameModeName,
             lives: lives,
