@@ -44,11 +44,11 @@ mongoose
 
 app.use(express.json());
 app.use('/api', router);
-//app.use(cors({
-//    origin: ["https://thebombgame.netlify.app/"], // Replace with the appropriate origin
-//    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-//    credentials: true,
-//}));
+app.use(cors({
+    origin: ["https://thebombgame.netlify.app/"], // Replace with the appropriate origin
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+}));
 
 const server = http.createServer(app);
 const io = new Server(server, {
