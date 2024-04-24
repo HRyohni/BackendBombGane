@@ -187,6 +187,7 @@ app.get('/api/gamemode/fetch-gamemodes', async (req, res) => {
 app.get('/api/gameMode/:gameModeId', async (req, res) => {
     try {
         const name = req.params;
+        console.log(name);
         const gameMode = await GameMode.findOne({name: name});
         res.status(200).send(gameMode);
     } catch (error) {
